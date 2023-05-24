@@ -31,8 +31,14 @@ class SuttaDeck:
 class SuttaPlayer:
     def __init__(self, userdata:str="") -> None:
         if userdata!="":
-            pass
+            pass            ##불러오기
+            self.data:str = ""
+            self.hand:list = []
+            self.money:int = 100000
+            self.wp:int = 0
+            self.lp:int = 0
         else:
+            self.data:str = ""
             self.hand:list = []
             self.money:int = 100000
             self.wp:int = 0
@@ -95,4 +101,29 @@ class SuttaPlayer:
             self.money -= bet_money
             return bet_money
     
-        
+class Game:
+    def __init__(self,player:int, userdata:list):
+        self.player = []
+        self.deck = SuttaDeck()
+        self.playable = []
+        for i in range(player):
+            self.player.append(SuttaPlayer(userdata[i]))        
+
+    def Do_Sutta_Game(self, start_money:int=100):
+        pass
+
+    def top_grade(self):
+        rank = []
+        for i in range(len(self.player)):
+            self.player[i].sort()
+            rank[i] = { 'p_no':i, 'grade':self.player[i].grade(), 'win':False}
+        rank.sort(lambda x:x[i]["grade"])
+        if rank[0]['grade']==1 and rank[1]['grade']>3:
+            rank[0]['grade']==38
+        elif rank[0]['grade']==10 and rank[1]['grade']>19 : 
+            rank[0]['grade']==39
+        rank.sort(lambda x:x[i]["grade"])
+        return rank
+
+if __name__=="__main__":
+    g = Game(5,['','','','',''])
