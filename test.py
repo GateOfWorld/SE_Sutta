@@ -49,34 +49,50 @@ class SuttaPlayer:
         return
     
     def panjeong(self)->int:
-        if self.hand[0]==(3,'a') and self.hand[1]==(8,'a') :
-            return 0    ##38광땡
-        elif self.hand[0]==(1,'a') and self.hand[1]==(8,'a') :
-            return 2    ##18광땡
-        elif self.hand[0]==(1,'a') and self.hand[1]==(3,'a') :
-            return 3    ##13광땡
-        elif self.hand[0]==(4,'a') and self.hand[1]==(7,'a') :
-            return 1    ##47암행어사
-        elif self.hand[0][0]==self.hand[1][0] : 
-            res = 20-self.hand[0][0]
-            if res==10: return 8
-            else : return res
-        elif tmp.count(4)==tmp.count(9)==1 :
-            if self.hand[0][1]==self.hand[1][1]=='a':
-                return 9        #멍텅구리구사   :9땡이하재경기
-            else :return 20     #구사           :알리이하재경기
-        elif self.hand[0]==(3,'a') and self.hand[1]==(7,'a'):
-            return 10
-        elif self.hand[0][0]==1 and self.hand[1][0]==2:
-            return 21           #알리 21
-        elif self.hand[0][0]==1 and self.hand[1][0]==4:
-            return 22
-        elif self.hand[0][0]==1 and self.hand[1][0]==9:
-            return 23
-        elif self.hand[0][0]==1 and self.hand[1][0]==10:
-            return 24
-        elif self.hand[0][0]==4 and self.hand[1][0]==10:
-            return 25
-        elif self.hand[0][0]==4 and self.hand[1][0]==6:
-            return 26
-        else : return 39-((self.hand[0][0]+self.hand[1][0])%10)
+        def lowpanjeong(self)->int:
+            if self.hand[0][0]==1 and self.hand[1][0]==2:
+                return 17           
+            elif self.hand[0][0]==1 and self.hand[1][0]==4:
+                return 18
+            elif self.hand[0][0]==1 and self.hand[1][0]==9:
+                return 19
+            elif self.hand[0][0]==1 and self.hand[1][0]==10:
+                return 20
+            elif self.hand[0][0]==4 and self.hand[1][0]==10:
+                return 21
+            elif self.hand[0][0]==4 and self.hand[1][0]==6:
+                return 22
+            else : return 32-((self.hand[0][0]+self.hand[1][0])%10)
+        #--------------------------------------
+        if self.hand[0][0]==4 and self.hand[1][0]==9:
+            if self.hand[0][1]==self.hand[1][1]=='a' :
+                return 5
+            else : 
+                return 16 
+        elif self.hand[0][1]==self.hand[1][1]=='a' :
+            if self.hand[0][0]==3 and self.hand[1][0]==8:
+                return 0#38
+            elif self.hand[0][0]==1 and self.hand[1][0]==8:
+                return 2#18
+            elif self.hand[0][0]==1 and self.hand[1][0]==3:
+                return 3#13
+            elif self.hand[0][0]==4 and self.hand[1][0]==7:
+                return 1#47암행, 1끗취급
+            elif self.hand[0][0]==3 and self.hand[1][0]==7:
+                return 6#37땡잡이, 망통취급
+            else : return lowpanjeong()
+        elif self.hand[0][0]==self.hand[1][0]:
+            if self.hand[0][0]==10 : return 4
+            else : return 16-self.hand[0][0]
+        else : return lowpanjeong()
+    
+    def bet_player(self, bet_money:int):
+        if self.money<bet_money:
+            mtmp = self.money
+            self.money=0
+            return mtmp
+        else :
+            self.money -= bet_money
+            return bet_money
+    
+        
