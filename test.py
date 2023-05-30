@@ -37,6 +37,7 @@ class SuttaPlayer:
             self.money:int = 100000
             self.wp:int = 0
             self.lp:int = 0
+            self.alive = True
             
     def get_card(self, card):
         if str(type(card))=="<class 'list'>":
@@ -96,13 +97,16 @@ class SuttaPlayer:
         else : return lowpanjeong(self)
     
     def bet_player(self, bet_money:int):
-        if self.money<bet_money:
-            mtmp = self.money
-            self.money=0
-            return mtmp
+        if self.alive :
+            if self.money<bet_money:
+                mtmp = self.money
+                self.money=0
+                return mtmp
+            else :
+                self.money -= bet_money
+                return bet_money
         else :
-            self.money -= bet_money
-            return bet_money
+            return 0
     
 class Game:
     def __init__(self,player:int, userdata:list):
@@ -112,19 +116,27 @@ class Game:
         for i in range(player):
             self.player.append(SuttaPlayer(userdata[i]))        
 
-    def Do_Sutta_Game(self, start_money:int=0):
+    def Do_Sutta_Game(self, start_money:int=0, starter:int=0):
         pandon:int = start_money
         if pandon==0:
-            for i in range(len(self.player)):
+            for i in range(starter, starter+len(self.player)):
                 pandon+=self.player[i].bet_player(1000)
-            for p in self.player:
-                pp:SuttaPlayer = p
+            for i in range(starter, starter+len(self.player)):
+                pp:SuttaPlayer = self.player[i]
                 pp.get_card(self.deck.pop_deck())
         else :
             pass
-        
+    
+    def restarter(self)->int:
+        for p in self.player:
+            p:SuttaPlayer
+            if p.alive :
+                return self.player.index(p)
+            else : continue
+        return 0
         
 if __name__=="__main__":
-    g = Game(5,['','','','',''])
+    g:Game = Game(5,['','','','',''])
     g.Do_Sutta_Game()
     print()
+    print(g.restarter())
