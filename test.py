@@ -154,7 +154,7 @@ class Game:
             if p.alive:
                 res.append([i, p.panjeong()])
             else: continue
-        
+        res.sort(key=(lambda x:x[1]))
         
         
         return res
