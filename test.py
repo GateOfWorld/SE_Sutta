@@ -112,21 +112,27 @@ class Game:
     def __init__(self,player:int, userdata:list):
         self.player = []
         self.deck = SuttaDeck()
-        self.playable = []
+        self.pandon:int = 0
         for i in range(player):
             self.player.append(SuttaPlayer(userdata[i]))        
 
     def Do_Sutta_Game(self, start_money:int=0, starter:int=0):
-        pandon:int = start_money
-        if pandon==0:
+        self.pandon = start_money
+        if self.pandon==0:
             for i in range(starter, starter+len(self.player)):
-                pandon+=self.player[i].bet_player(1000)
-            for i in range(starter, starter+len(self.player)):
-                pp:SuttaPlayer = self.player[i]
-                pp.get_card(self.deck.pop_deck())
+                self.player[i].alive=True
+                self.pandon+=self.player[i].bet_player(1000)
+            self.dispense_card()
+            self.bet_all()
+            self.dispense_card()
+            self.bet_all()
+            graderes = self.gradeList(starter)
         else :
             pass
-    
+        
+    def bet_all(self, starter:int=0):
+        pass
+
     def restarter(self)->int:
         for p in self.player:
             p:SuttaPlayer
@@ -134,7 +140,25 @@ class Game:
                 return self.player.index(p)
             else : continue
         return 0
+    
+    def dispense_card(self, starter:int =0, count:int =1):
+        for i in range(starter, len(self.player)+starter):
+            p:SuttaPlayer = self.player[i]
+            if p.alive:
+                p.get_card(self.deck.pop_deck(count))
+    
+    def gradeList(self, starter:int=0):
+        res = []
+        for i in range(starter, len(self.player)+starter):
+            p:SuttaPlayer=self.player[i]
+            if p.alive:
+                res.append([i, p.panjeong()])
+            else: continue
         
+        
+        
+        return res
+            
 if __name__=="__main__":
     g:Game = Game(5,['','','','',''])
     g.Do_Sutta_Game()
