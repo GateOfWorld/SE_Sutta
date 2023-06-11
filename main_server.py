@@ -45,20 +45,37 @@ class SuttaDeck:
 
 class SuttaPlayer:
     def __init__(self, userdata:str="") -> None:
+        
         """플레이어 데이터를 불러오거나 새로 생성합니다. userdata에 데이터 값이 있으면 데이터베이스에서 값을 불러들여옵니다.
         시작 금액은 10만원이며, 구성요소는 플레이어의 손패, 보유금, 승수, 패수, 생존여부(게임진행가능여부)입니다."""
-        if userdata!="":
-            pass            ##불러오기
-        else:
-            self.data:str = ""
-            self.hand:list = []
-            self.money:int = 100000
-            self.wp:int = 0
-            self.lp:int = 0
-            self.alive = True
-            self.called = False
-            self.betmoney = 0
-            
+        if userdata=="":
+            #self.create_user()
+            pass
+        get_data = self.get_userdata(userdata)
+        
+        self.hand:list = []
+        self.money:int = get_data[1]
+        self.wp:int = get_data[2]
+        self.lp:int = get_data[3]
+        self.alive = True
+        self.called = False
+        self.betmoney:int = 0
+
+    def get_userdata(self, userdata:str):
+        import MySQLdb
+        host = '121.173.40.127'
+        userid = 'test'
+        passwd = 'pswd12#$'
+        userdb = 'sesutta'
+        con = MySQLdb.connect(host, userid, passwd, userdb)
+        cursor = con.cursor()
+        query = "SELECT * FROM userdata WHERE usertext=\"%s\""%(userdata)
+        cursor.execute(query)
+        result = cursor.fetchall()
+        
+        return result[0]
+        
+        
     def get_card(self, card):
         """덱에서 보내온 카드를 손패에 추가합니다. 튜플이나 튜플의 리스트를 지원합니다."""
         if str(type(card))=="<class 'list'>":
@@ -201,12 +218,15 @@ class Game:
                   21:"장사",22:"세륙",23:"갑오",24:"8끗",25:"7끗",26:"6끗",27:"5끗",
                   28:"4끗",29:"3끗",30:"2끗",31:"1끗",32:"망통"}
 
-    def __init__(self,player:int, userdata:list):
+    def __init__(self, userdata:list=[]):
         self.player = []
         self.deck = SuttaDeck()
         self.pandon:int = 0
-        for i in range(player):
-            self.player.append(SuttaPlayer(userdata[i]))        
+        for i in range(len(userdata)):
+            self.player.append(SuttaPlayer(userdata[i]))
+            
+    def add_player(self, userdata:str=""):
+        self.player.append(SuttaPlayer(userdata))      
 
     def Full_Game(self):
         starter = 0
@@ -320,5 +340,6 @@ class Game:
         return True
             
 if __name__=="__main__":
-    g:Game = Game(5,['','','','',''])
-    g.Full_Game()
+    g:Game = Game()
+    #g.Full_Game()
+    g.add_player('tester01')
