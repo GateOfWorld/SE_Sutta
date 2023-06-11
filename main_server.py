@@ -44,15 +44,13 @@ class SuttaDeck:
         return False
 
 class SuttaPlayer:
-    def __init__(self, userdata:str="") -> None:
+    def __init__(self, userdata:str=""):
         
         """플레이어 데이터를 불러오거나 새로 생성합니다. userdata에 데이터 값이 있으면 데이터베이스에서 값을 불러들여옵니다.
         시작 금액은 10만원이며, 구성요소는 플레이어의 손패, 보유금, 승수, 패수, 생존여부(게임진행가능여부)입니다."""
         if userdata=="":
-            #self.create_user()
-            pass
+            userdata=self.new_userdata()
         get_data = self.get_userdata(userdata)
-        
         self.hand:list = []
         self.money:int = get_data[1]
         self.wp:int = get_data[2]
@@ -72,10 +70,26 @@ class SuttaPlayer:
         query = "SELECT * FROM userdata WHERE usertext=\"%s\""%(userdata)
         cursor.execute(query)
         result = cursor.fetchall()
-        
+        print("%s 로그인됨"%result[0][0])
         return result[0]
-        
-        
+    
+    def new_userdata(self):
+        from MySQLdb import _mysql
+        import random
+        import string
+        str_list = string.ascii_letters + string.digits
+        randid = random.sample(str_list ,10)
+        res:str = ''
+        for s in randid: res+=s
+        host = '121.173.40.127'
+        userid = 'test'
+        passwd = 'pswd12#$'
+        userdb = 'sesutta'
+        con = _mysql.connect(host, userid, passwd, userdb)
+        query = "insert into userdata(usertext) values(\"%s\");"%(res)
+        con.query(query)
+        return res
+    
     def get_card(self, card):
         """덱에서 보내온 카드를 손패에 추가합니다. 튜플이나 튜플의 리스트를 지원합니다."""
         if str(type(card))=="<class 'list'>":
@@ -173,41 +187,23 @@ class SuttaPlayer:
         3 : 올인이 아닌 일반인, 4 : 동의만 얻는 플레이어"""
         #comList = {0:"다이",1:"콜 or 체크",2:"하프",3:"쿼터",4:"삥"}
         order = None
-        match command:
-            case 0 :
-                while type(order)!=int:
-                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
-                    order = int(input())
-                    if (order<0) or (order>1):
-                        order = "a"
-                    
-            case 1 :
-                while type(order)!=int:
-                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
-                    order = int(input())
-                    if (order<0) or (order>1):
-                        order = "a"
-            case 2 :
-                while type(order)!=int:
-                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
-                    order = int(input())
-                    if (order<0) or (order>3):
-                        order = "a"
-            case 3 :
-                while type(order)!=int:
-                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
-                    order = int(input())
-                    if (order<0) or (order>3):
-                        order = "a"
-            case 4 :
-                while type(order)!=int:
-                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
-                    order = int(input())
-                    if (order<0) or (order>1):
-                        order = "a"
+        print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
+        while type(order)!=int :
+            order = int(input())
+            match command:
+                case 0 :
+                    if (order<0) or (order>1):order = "a"
+                case 1 :
+                    if (order<0) or (order>1):order = "a"
+                case 2 :
+                    if (order<0) or (order>3):order = "a"
+                case 3 :
+                    if (order<0) or (order>3):order = "a"
+                case 4 :
+                    if (order<0) or (order>1):order = "a"
         match order :
             case 0 : self.alive = False; return 0
-            case 1 : self.called = True if order!=4 else self.called ; return lastbet-self.betmoney
+            case 1 : self.called = True if order!=4 else self.called; return lastbet-self.betmoney
             case 2 : return pandon/2
             case 3 : return pandon/4
 
@@ -226,7 +222,25 @@ class Game:
             self.player.append(SuttaPlayer(userdata[i]))
             
     def add_player(self, userdata:str=""):
-        self.player.append(SuttaPlayer(userdata))      
+        self.player.append(SuttaPlayer(userdata))
+    
+    def login_user(self):
+        logindata = input("유저데이터 입력. 없을 시 공백 입력")
+        self.add_player(logindata)
+    
+#    def login_user_udp(self):
+#        import socket
+#        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#        sock.bind(("127.0.0.1", 12345))
+#        while True:
+#            suc = len(self.player)
+#            data, addr = sock.recvfrom(1024)
+#            data = data.decode()
+#            self.add_player(userdata=data)
+#            if suc==len(self.player): 
+#                sock.sendto("success".encode(), addr)
+#                sock.close()
+#                break
 
     def Full_Game(self):
         starter = 0
@@ -236,12 +250,12 @@ class Game:
             #경기결과 SQL 저장
             print("승자 : %d번\t상금 : %d원"%(starter+1, self.pandon))            
             for p in self.player:
-                p:SuttaPlayer
                 if self.player.index(p)==starter: p.win(self.pandon)
                 else : p.lose()
                 print("%d\t%d\t%d\t"%(p.wp, p.lp, p.money),end="")
                 if len(p.hand)==2 : print(self.jokboIndex[p.panjeong()] ,p.hand)
                 else : print()
+            if len(self.player)<2 : break
             self.pandon=0
     
     def Match_Game(self, start_money:int=0, starter:int=0):
@@ -282,12 +296,10 @@ class Game:
         last:int = 0
         lp:int = -1
         for p in self.player : p.betmoney=0
-        for p in self.player:
+        for p in self.player :
             if self.alive_check()<2 : break 
-            p:SuttaPlayer
-            if not p.alive :
-                continue
-            elif p.money!=0:
+            if not p.alive : continue
+            elif p.money!=0 :
                 if self.player.index(p)==starter:
                     p.bet_player(p.bet_command(self.pandon, 2, last))
                 else :
@@ -299,8 +311,7 @@ class Game:
             self.pandon+=last
         for p in self.player:
             if self.alive_check()<2 : break 
-            if p.alive : 
-                if lp!=self.player.index(p):self.pandon+=p.bet_player(p.bet_command(self.pandon, 4, last))
+            if p.alive and lp!=self.player.index(p):self.pandon+=p.bet_player(p.bet_command(self.pandon, 4, last))
     
     def dispense_card(self, starter:int =0, count:int =1):
         """지정된 매수의 카드를 생존한 각 플레이어에게 지급합니다. 생존한 유저에게만 지급하며, 죽은 유저(다이 선언한 유저)에게는 지급하지 않습니다."""
@@ -336,10 +347,13 @@ class Game:
         for p in self.player:
             p:SuttaPlayer
             if p.money==0:
+                self.player.remove(p)
                 return False
         return True
             
 if __name__=="__main__":
-    g:Game = Game()
-    #g.Full_Game()
-    g.add_player('tester01')
+    g=Game()
+    while True :
+        if len(g.player)<2 : g.login_user()
+        if int(input("시작?")): g.Full_Game()
+        else : g.login_user()
