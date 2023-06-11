@@ -28,10 +28,21 @@ class SuttaDeck:
         else : 
             return False
         
-    def suffle(self):
+    def suffle(self, seed:any=None):
+        """덱의 순서를 무작위로 섞습니다."""
         import random
+        import time
+        if seed==None: random.seed(time.time())
         random.shuffle(self.deck)
     
+    def jumgeom(self):
+        for i in range(0, len(self.deck)):
+            tmp1 = self.deck[i]
+            for j in range(i+1, len(self.deck)):
+                if tmp1!=self.deck[j] : continue
+                else : return True
+        return False
+
 class SuttaPlayer:
     def __init__(self, userdata:str="") -> None:
         """플레이어 데이터를 불러오거나 새로 생성합니다. userdata에 데이터 값이 있으면 데이터베이스에서 값을 불러들여옵니다.
@@ -45,9 +56,11 @@ class SuttaPlayer:
             self.wp:int = 0
             self.lp:int = 0
             self.alive = True
+            self.called = False
+            self.betmoney = 0
             
     def get_card(self, card):
-        """덱에서 가져온 카드를 손패에 추가합니다. 튜플이나 튜플의 리스트를 지원합니다."""
+        """덱에서 보내온 카드를 손패에 추가합니다. 튜플이나 튜플의 리스트를 지원합니다."""
         if str(type(card))=="<class 'list'>":
             self.hand.__iadd__(card)
             return True
@@ -55,7 +68,6 @@ class SuttaPlayer:
             self.hand.append(card)
             return True
         return False
-    
     
     def win(self, gain_money:int)->None:
         """플레이어가 승리시, 판돈을 회수함과 동시에 승점을 추가합니다."""
@@ -92,6 +104,8 @@ class SuttaPlayer:
         갑오 ~ 망통 : 23 ~ 32
         """
         #--------------------------------------
+        if len(self.hand)<2 : return-1
+        self.hand.sort()
         if self.hand[0][0]==4 and self.hand[1][0]==9:
             if self.hand[0][1]==self.hand[1][1]=='a' :
                 return 5
@@ -120,22 +134,73 @@ class SuttaPlayer:
             if self.money<bet_money:
                 mtmp = self.money
                 self.money=0
+                self.betmoney +=mtmp
                 return mtmp
             else :
                 self.money -= bet_money
+                self.betmoney +=bet_money
                 return bet_money
         else :
             return 0
         
     def return_card(self):
+        """플레이어의 손패에 있는 카드를 덱클래스에 반납합니다."""
         res:list = []
         for h in range(len(self.hand)):
             res.append(self.hand[h])
         self.hand = []
         return res
-            
     
+    def bet_command(self, pandon:int , command:int, lastbet:int)->int:
+        """0 : 올인상태, 1 : 올인상태인 스타터, 2 : 올인이 아닌 스타터, 
+        3 : 올인이 아닌 일반인, 4 : 동의만 얻는 플레이어"""
+        #comList = {0:"다이",1:"콜 or 체크",2:"하프",3:"쿼터",4:"삥"}
+        order = None
+        match command:
+            case 0 :
+                while type(order)!=int:
+                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
+                    order = int(input())
+                    if (order<0) or (order>1):
+                        order = "a"
+                    
+            case 1 :
+                while type(order)!=int:
+                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
+                    order = int(input())
+                    if (order<0) or (order>1):
+                        order = "a"
+            case 2 :
+                while type(order)!=int:
+                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
+                    order = int(input())
+                    if (order<0) or (order>3):
+                        order = "a"
+            case 3 :
+                while type(order)!=int:
+                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
+                    order = int(input())
+                    if (order<0) or (order>3):
+                        order = "a"
+            case 4 :
+                while type(order)!=int:
+                    print("명령어 입력%d, %d, %d\t"%(pandon, lastbet, self.betmoney),self.hand)
+                    order = int(input())
+                    if (order<0) or (order>1):
+                        order = "a"
+        match order :
+            case 0 : self.alive = False; return 0
+            case 1 : self.called = True if order!=4 else self.called ; return lastbet-self.betmoney
+            case 2 : return pandon/2
+            case 3 : return pandon/4
+
 class Game:
+    jokboIndex = {0:"38광땡", 1:"암행어사", 2:"18광땡",3:"13광땡",4:"장땡",5:"멍텅구리구사",
+                  6:"땡잡이", 7:"9땡",8:"8땡",9:"7땡",10:"6땡",11:"5땡",12:"4땡",13:"3땡",
+                  14:"2땡",15:"1땡",16:"구사",17:"알리",18:"독사",19:"구삥",20:"장삥",
+                  21:"장사",22:"세륙",23:"갑오",24:"8끗",25:"7끗",26:"6끗",27:"5끗",
+                  28:"4끗",29:"3끗",30:"2끗",31:"1끗",32:"망통"}
+
     def __init__(self,player:int, userdata:list):
         self.player = []
         self.deck = SuttaDeck()
@@ -149,19 +214,23 @@ class Game:
             res = self.Match_Game(starter=starter)
             starter=res[0]
             #경기결과 SQL 저장
-            print("승자 : %d번\t상금 : %d원"%(starter, self.pandon))            
+            print("승자 : %d번\t상금 : %d원"%(starter+1, self.pandon))            
             for p in self.player:
                 p:SuttaPlayer
-                print("%d\t%d\t%d\t"%(p.wp, p.lp, p.money),p.hand)
                 if self.player.index(p)==starter: p.win(self.pandon)
                 else : p.lose()
-            
+                print("%d\t%d\t%d\t"%(p.wp, p.lp, p.money),end="")
+                if len(p.hand)==2 : print(self.jokboIndex[p.panjeong()] ,p.hand)
+                else : print()
             self.pandon=0
     
     def Match_Game(self, start_money:int=0, starter:int=0):
         for p in self.player:
             self.deck.return_deck(p.return_card())
+            p.called = False
         self.deck.suffle()
+        if self.deck.jumgeom():
+            return -1
         self.pandon = start_money
         if self.pandon==0:
             for i in range(starter, starter+len(self.player)):
@@ -170,47 +239,48 @@ class Game:
                 self.player[s].alive=True
                 self.pandon+=self.player[s].bet_player(1000)
             self.dispense_card()
-            self.bet_all()
-            self.dispense_card()
-            self.bet_all()
-            graderes = self.gradeList()
-            if (graderes[0][1]==5) or (graderes[0][1]==16) :
-                return self.Match_Game(start_money=self.pandon, starter=graderes[0][0])
-            if graderes[0][1]==graderes[1][1] :
-                for gr in graderes:
-                    if gr==graderes[0] : 
-                        continue
-                    if gr[1]!=graderes[0][1] : 
-                        p:SuttaPlayer= self.player[gr[0]]
-                        p.alive=False
-                return self.Match_Game(start_money=self.pandon, starter=graderes[0][0])
-            return graderes[0]
+            self.bet_all(starter)
+            if self.alive_check()>1: 
+                self.dispense_card()
+                self.bet_all(starter)
         else :
+            print("재경기")
             self.dispense_card(starter=starter,count=2)
-            self.bet_all()
-            graderes = self.gradeList()
+            self.bet_all(starter)
+        graderes = self.gradeList()
+        if self.alive_check()>1 :
             if (graderes[0][1]==5) or (graderes[0][1]==16) :
                 return self.Match_Game(start_money=self.pandon, starter=graderes[0][0])
             if graderes[0][1]==graderes[1][1] :
                 for gr in graderes:
-                    if gr==graderes[0] : 
-                        continue
-                    if gr[1]!=graderes[0][1] : 
-                        p:SuttaPlayer= self.player[gr[0]]
-                        p.alive=False
+                    if gr==graderes[0] : continue
+                    if gr[1]!=graderes[0][1] : self.player[gr[0]]=False
                 return self.Match_Game(start_money=self.pandon, starter=graderes[0][0])
-            return graderes[0]
-        
+        return graderes[0]
+       
     def bet_all(self, starter:int=0):
-        pass
-
-    def restarter(self)->int:
+        last:int = 0
+        lp:int = -1
+        for p in self.player : p.betmoney=0
         for p in self.player:
+            if self.alive_check()<2 : break 
             p:SuttaPlayer
-            if p.alive :
-                return self.player.index(p)
-            else : continue
-        return 0
+            if not p.alive :
+                continue
+            elif p.money!=0:
+                if self.player.index(p)==starter:
+                    p.bet_player(p.bet_command(self.pandon, 2, last))
+                else :
+                    p.bet_player(p.bet_command(self.pandon, 3, last))
+            else :
+                p.bet_player(p.bet_command(self.pandon, 0, last))
+            last = max(last, p.betmoney)
+            if p.alive : lp=self.player.index(p)
+            self.pandon+=last
+        for p in self.player:
+            if self.alive_check()<2 : break 
+            if p.alive : 
+                if lp!=self.player.index(p):self.pandon+=p.bet_player(p.bet_command(self.pandon, 4, last))
     
     def dispense_card(self, starter:int =0, count:int =1):
         """지정된 매수의 카드를 생존한 각 플레이어에게 지급합니다. 생존한 유저에게만 지급하며, 죽은 유저(다이 선언한 유저)에게는 지급하지 않습니다."""
@@ -233,8 +303,14 @@ class Game:
         while (res[0][1]==1 and res[1][1]>4)or(res[0][1]==6 and res[1][1]>16):
             p = self.player[res[0][0]]
             res[0][1]=p.lowpanjeong()
-            res.sort(key=(lambda x:x[1]))          
+            res.sort(key=(lambda x:x[1]))
         return res
+    
+    def alive_check(self):
+        alres:int = 0
+        for p in self.player:
+            if p.alive : alres +=1
+        return alres
     
     def Non_Money(self):
         for p in self.player:
