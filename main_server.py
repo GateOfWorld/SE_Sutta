@@ -96,6 +96,14 @@ class SuttaPlayer:
             return True
         return False
     
+    def return_card(self):
+        """플레이어의 손패에 있는 카드를 덱클래스에 반납합니다."""
+        res:list = []
+        for h in range(len(self.hand)):
+            res.append(self.hand[h])
+        self.hand = []
+        return res
+    
     def win(self, gain_money:int)->None:
         """플레이어가 승리시, 판돈을 회수함과 동시에 승점을 추가합니다."""
         self.wp+=1
@@ -174,7 +182,7 @@ class SuttaPlayer:
         else : 
             return self.lowpanjeong()
     
-    def bet_player(self, bet_money:int)->int:
+    def bet_money(self, bet_money:int)->int:
         """지정된 베팅금액을 판돈에 보탭니다. 보유금 부족시, 보유 가능한 금액을 다 냅니다."""
         if self.alive :
             if self.money<bet_money:
@@ -188,14 +196,6 @@ class SuttaPlayer:
                 return int(bet_money)
         else :
             return 0
-        
-    def return_card(self):
-        """플레이어의 손패에 있는 카드를 덱클래스에 반납합니다."""
-        res:list = []
-        for h in range(len(self.hand)):
-            res.append(self.hand[h])
-        self.hand = []
-        return res
     
     def bet_command(self, pandon:int, command:int, defbet:int, lastbet:int)->int:
         """0 : 올인상태 스타터, 1 : 올인상태인 비스타터, 2 : 동의만 얻는 플레이어, 
@@ -215,25 +215,15 @@ class SuttaPlayer:
             else :
                 print("")
             order = int(input())
-            match command:
-                case 0 :
-                    if (order<0) or (order>1) :
-                        order = "a"
-                case 1 :
-                    if (order<0) or (order>1) :
-                        order = "a"
-                case 2 :
-                    if (order<0) or (order>1) :
-                        order = "a"
-                case 3 :
-                    if (order<0) or (order>4) :
-                        order = "a"
-                case 4 :
-                    if (order<0) or (order>4) :
-                        order = "a"
+            if command<3 :
+                if (order<0) or (order>1) :
+                    order = "a"
+            else :
+                if (order<0) or (order>4) :
+                    order = "a"
         match order :
             case 0 : self.alive = False; return 0
-            case 1 : self.called = True if order!=4 else self.called; return int(lastbet-self.betmoney)
+            case 1 : self.called = True if command!=4 else self.called; return int(lastbet-self.betmoney)
             case 2 : return int(pandon/2)
             case 3 : return int(pandon/4)
             case 4 : return int(defbet)
@@ -256,24 +246,10 @@ class Game:
         logindata = input("유저데이터 입력. 없을 시 공백 입력")
         self.player.append(SuttaPlayer(logindata))
     
-#    def login_user_udp(self):
-#        import socket
-#        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#        sock.bind(("127.0.0.1", 12345))
-#        while True:
-#            suc = len(self.player)
-#            data, addr = sock.recvfrom(1024)
-#            data = data.decode()
-#            self.add_player(userdata=data)
-#            if suc==len(self.player): 
-#                sock.sendto("success".encode(), addr)
-#                sock.close()
-#                break
-
     def Full_Game(self):
         starter = 0
         while (self.Non_Money()) :
-            res = self.Match_Game(starter=starter)
+            res = self.Set_Game(starter=starter)
             starter=res[0]
             #경기결과 SQL 저장
             print("승자 : %s\t상금 : %d원"%(self.player[starter].user, self.pandon))
@@ -288,13 +264,25 @@ class Game:
                     print(self.jokboIndex[p.panjeong()] ,p.hand)
                 else : 
                     print()
-            if input("로그아웃?") :
-                self.logout(input("id?"))
+            while True:
+                print("커맨드\n0:게임시작\t1:로그인\t2:로그아웃")
+                com = int(input())
+                match com:
+                    case 0:
+                        if len(self.player)>1 : break
+                        else : print("인원수가 부족합니다.")
+                    case 1:
+                        if len(self.player)<6 : self.login_user()
+                        else : print("플레이어 수가 너무 많습니다.")
+                    case 2: 
+                        if len(self.player)>0 : self.logout()
+                        else : print("플레이어가 없습니다.")
             if len(self.player)<2 : 
                 break
             self.pandon=0
     
-    def Match_Game(self, start_money:int=0, defbet:int=1000, starter:int=0):
+    def Set_Game(self, start_money:int=0, defbet:int=1000, starter:int=0):
+        """단판 게임을 실행합니다. """
         for p in self.player:
             self.deck.return_deck(p.return_card())
             p.called = False
@@ -306,7 +294,7 @@ class Game:
                 if s>=len(self.player) : 
                     s-=len(self.player)
                 self.player[s].alive=True
-                self.pandon+=self.player[s].bet_player(defbet)
+                self.pandon+=self.player[s].bet_money(defbet)
             print("1차 베팅")
             self.dispense_card()
             self.bet_all(starter, defbet)
@@ -321,17 +309,18 @@ class Game:
         graderes = self.gradeList()
         if self.alive_check()>1 :
             if (graderes[0][1]==5) or (graderes[0][1]==16) :
-                return self.Match_Game(start_money=self.pandon, starter=graderes[0][0])
+                return self.Set_Game(start_money=self.pandon, starter=graderes[0][0])
             if graderes[0][1]==graderes[1][1] :
                 for gr in graderes:
                     if gr==graderes[0] : 
                         continue
                     if gr[1]!=graderes[0][1] : 
                         self.player[gr[0]].alive=False
-                return self.Match_Game(start_money=self.pandon, starter=graderes[0][0])
+                return self.Set_Game(start_money=self.pandon, starter=graderes[0][0])
         return graderes[0]
        
     def bet_all(self, starter:int=0, dbet:int=1000):
+        """현재 생존한 유저들에게서 레이즈를 요청합니다."""
         last:int = 0
         lp:int = -1
         for p in self.player : 
@@ -344,14 +333,14 @@ class Game:
                 continue
             elif p.money!=0 :
                 if self.player.index(p)==starter:
-                    p.bet_player(p.bet_command(self.pandon, 3, dbet, last))
+                    p.bet_money(p.bet_command(self.pandon, 3, dbet, last))
                 else :
-                    p.bet_player(p.bet_command(self.pandon, 4, dbet, last))
+                    p.bet_money(p.bet_command(self.pandon, 4, dbet, last))
             else :
                 if self.player.index(p)==starter:
-                    p.bet_player(p.bet_command(self.pandon, 0, dbet, last))
+                    p.bet_money(p.bet_command(self.pandon, 0, dbet, last))
                 else :
-                    p.bet_player(p.bet_command(self.pandon, 1, dbet, last))
+                    p.bet_money(p.bet_command(self.pandon, 1, dbet, last))
             last = max(last, p.betmoney)
             if p.alive : 
                 lp=self.player.index(p)
@@ -360,7 +349,7 @@ class Game:
             if self.alive_check()<2 : 
                 break 
             if p.alive and lp!=self.player.index(p) : 
-                self.pandon+=p.bet_player(p.bet_command(self.pandon, 2, dbet, last))
+                self.pandon+=p.bet_money(p.bet_command(self.pandon, 2, dbet, last))
     
     def dispense_card(self, starter:int =0, count:int =1):
         """지정된 매수의 카드를 생존한 각 플레이어에게 지급합니다. 생존한 유저에게만 지급하며, 죽은 유저(다이 선언한 유저)에게는 지급하지 않습니다."""
@@ -386,12 +375,14 @@ class Game:
         return res
     
     def alive_check(self):
+        """현재 생존자 수를 반환합니다. 0~5"""
         alres:int = 0
         for p in self.player:
             if p.alive : alres +=1
         return alres
     
     def Non_Money(self):
+        """누군가 보유금이 0원이 되면 로그아웃처리 합니다."""
         tmp:bool = True
         for p in self.player:
             if p.money==0:
@@ -399,19 +390,30 @@ class Game:
                 tmp=False
         return tmp
     
-    def logout(self, loid:str):
+    def logout(self, loid:str=''):
+        """userdata값을 받아 로그아웃처리합니다."""
+        if loid=='':
+            loid=input("로그아웃 아이디? :")
         for p in self.player:
             if p.user==loid:logout = p
             else : continue
         self.player.remove(logout)
-            
+
 if __name__=="__main__":
     g=Game()
     while True :
-        if len(g.player)<2 : g.login_user()
-        
-        elif int(input("시작?"))==1: g.Full_Game()
-        elif int(input("로그아웃?")) :
-            logoutid = str(input("id?"))
-            g.logout(logoutid) 
-        else : g.login_user()
+        print("로그인 유저")
+        for l in g.player:
+            print(l.user,end="\t")
+        print("\n커맨드\n0:게임시작\t1:로그인\t2:로그아웃")
+        com = int(input())
+        match com:
+            case 0:
+                if len(g.player)>1 : g.Full_Game()
+                else : print("인원수가 부족합니다.")
+            case 1:
+                if len(g.player)<6 : g.login_user()
+                else : print("플레이어 수가 너무 많습니다.")
+            case 2: 
+                if len(g.player)>0 : g.logout()
+                else : print("플레이어가 없습니다.")
