@@ -402,6 +402,18 @@ class Game:
 if __name__=="__main__":
     g=Game()
     while True :
-        if len(g.player)<2 : g.login_user()
-        if int(input("시작?")): g.Full_Game()
-        else : g.login_user()
+        print("로그인 유저")
+        for l in g.player:
+            print(l.user,end="\t")
+        print("\n커맨드\n0:게임시작\t1:로그인\t2:로그아웃")
+        com = int(input())
+        match com:
+            case 0:
+                if len(g.player)>1 : g.Full_Game()
+                else : print("인원수가 부족합니다.")
+            case 1:
+                if len(g.player)<6 : g.login_user()
+                else : print("플레이어 수가 너무 많습니다.")
+            case 2: 
+                if len(g.player)>0 : g.logout()
+                else : print("플레이어가 없습니다.")
