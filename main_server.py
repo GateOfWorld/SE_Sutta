@@ -235,12 +235,10 @@ class Game:
                   21:"장사",22:"세륙",23:"갑오",24:"8끗",25:"7끗",26:"6끗",27:"5끗",
                   28:"4끗",29:"3끗",30:"2끗",31:"1끗",32:"망통"}
 
-    def __init__(self, userdata:list=[]):
+    def __init__(self):
         self.player = []
         self.deck = SuttaDeck()
         self.pandon:int = 0
-        for l in userdata:
-            self.player.append(SuttaPlayer(l))
     
     def login_user(self):
         logindata = input("유저데이터 입력. 없을 시 공백 입력")
@@ -266,8 +264,8 @@ class Game:
                     print()
             while True:
                 print("커맨드\n0:게임시작\t1:로그인\t2:로그아웃")
-                com = int(input())
-                match com:
+                gcom = int(input())
+                match gcom:
                     case 0:
                         if len(self.player)>1 : break
                         else : print("인원수가 부족합니다.")
