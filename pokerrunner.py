@@ -2,10 +2,10 @@ class Deck :
     def __init__(self):
         self.deck=[]
         for i in range(1,14):
-            self.deck.append((i,'spade'))
-            self.deck.append((i,'heart'))
-            self.deck.append((i,'diamond'))
-            self.deck.append((i,'clover'))
+            self.deck.append((i,0))
+            self.deck.append((i,1))
+            self.deck.append((i,2))
+            self.deck.append((i,3))
         return
     
     def suffle(self, seed:any=None):
@@ -60,13 +60,30 @@ class Game:
     def __init__(self, p:int=1):
         self.p = []
         for _ in range(p):
-            self.p.append(Player())
+            self.p.append([Player(),4])
         self.deck = Deck()
         self.runner:list
         for _ in range(4):
 
-
     def new_game(self, meter:int = 10):
         self.deck.suffle()
         back_card:list = self.deck.Pop(meter-1)
-
+        tmp = 0
+        for i in range(self.p):
+            val = 4
+            while(True):
+                val=int(input("플레이어 %d가 고를 문양을 선택하세요.\n0 = 스페이드\n1 = 하트￦\n2 = 클로버\n3 = 다이아몬드\n",i))
+                if ((val<=0)&(val,4)):
+                    self.p[i][1]=val
+                    break
+                else :
+                    print("다시 선택해주세요.\n")
+        while(tmp==10):
+            card=self.deck.Pop()
+            for i in range(4):
+                if self.p[i][1]==card[1]
+            for i in range(self.p):
+                if tmp<self.p[i][1]:
+                    tmp=self.p[i][1]
+        self.deck.return_card(back_card)
+        return
